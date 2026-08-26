@@ -1,0 +1,31 @@
+{
+  "name": "threshold",
+  "private": true,
+  "version": "0.1.0",
+  "description": "One web page where several independent care organisations answer a person's agent at the same time and compose one plan between them, over WebMCP.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter './packages/*' build && pnpm -r --filter './apps/*' build",
+    "dev": "pnpm -r --parallel --filter './apps/*' dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r exec rm -rf dist node_modules/.vite"
+  },
+  "devDependencies": {
+    "@threshold/contracts": "workspace:*",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "@threshold/domain": "workspace:*",
+    "@threshold/test-fixtures": "workspace:*",
+    "@threshold/webmcp-adapter": "workspace:*",
+    "@threshold/lease-store": "workspace:*"
+  }
+}
