@@ -57,10 +57,15 @@ const validAvailability: ProviderAvailability = {
 // ---------------------------------------------------------------------------
 
 describe('every contract compiles under Ajv strict mode', () => {
-  it('registers all 27 contracts', () => {
+  it('compiles every registered contract', () => {
     // Touching V is what forces compilation; a schema Ajv rejects throws at module load.
-    expect(Object.keys(V).length).toBe(27);
-    expect(compiledContracts().length).toBe(27);
+    //
+    // Derived rather than a literal count. A hard-coded 27 was a tripwire that fired on the *next*
+    // legitimate contract addition rather than on a real problem, which is a test that trains you to
+    // edit it without reading it. The invariant that matters is that every validator in the registry
+    // actually compiled.
+    expect(compiledContracts().length).toBe(Object.keys(V).length);
+    expect(Object.keys(V).length).toBeGreaterThanOrEqual(2 * HUB_TOOL_NAMES.length);
   });
 
   it('names every hub tool', () => {
