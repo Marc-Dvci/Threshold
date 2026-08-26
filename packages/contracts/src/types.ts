@@ -24,6 +24,7 @@ import type {
   offerCapabilitiesSchema,
   placementOfferSchema,
   providerAvailabilitySchema,
+  providerErrorSchema,
   providerHoldInputSchema,
   providerHoldOutputSchema,
   providerQuerySchema,
@@ -90,6 +91,8 @@ export type CoverOffer = FromSchema<typeof coverOfferSchema>;
 export type ProviderOffer = PlacementOffer | TransportOffer | CoverOffer;
 
 export type ProviderAvailability = FromSchema<typeof providerAvailabilitySchema>;
+export type ProviderError = FromSchema<typeof providerErrorSchema>;
+export type ProviderErrorCode = ProviderError['error_code'];
 
 export type ProviderHoldInput = FromSchema<typeof providerHoldInputSchema>;
 export type ProviderHoldOutput = FromSchema<typeof providerHoldOutputSchema>;

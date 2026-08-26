@@ -36,6 +36,7 @@ import {
 } from './schemas/hub-tools';
 import {
   providerAvailabilitySchema,
+  providerErrorSchema,
   providerHoldInputSchema,
   providerHoldOutputSchema,
   providerQuerySchema,
@@ -62,6 +63,7 @@ import type {
   PlacePlanHoldsInput,
   PlacePlanHoldsOutput,
   ProviderAvailability,
+  ProviderError,
   ProviderHoldInput,
   ProviderHoldOutput,
   ProviderQuery,
@@ -110,6 +112,7 @@ export const V = {
 
   // Provider -> hub. THE trust boundary.
   providerAvailability: validator<ProviderAvailability>('provider.query_availability.output', providerAvailabilitySchema),
+  providerError: validator<ProviderError>('provider.error', providerErrorSchema),
   providerHoldOutput: validator<ProviderHoldOutput>('provider.hold.output', providerHoldOutputSchema),
   providerReleaseOutput: validator<ProviderReleaseOutput>('provider.release_hold.output', providerReleaseOutputSchema),
   providerReferralOutput: validator<ProviderReferralOutput>('provider.accept_referral.output', providerReferralOutputSchema),
@@ -128,6 +131,7 @@ export const PROVIDER_OUTPUT_SCHEMAS = {
   'provider.hold.output': providerHoldOutputSchema,
   'provider.release_hold.output': providerReleaseOutputSchema,
   'provider.accept_referral.output': providerReferralOutputSchema,
+  'provider.error': providerErrorSchema,
 } as const;
 
 /** Every hub tool name, in registration order. Used by the tool lifecycle manager and by evals. */

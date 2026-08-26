@@ -300,3 +300,48 @@ export const providerReferralOutputSchema = {
     expected_at: clockTimeSchema,
   },
 } as const;
+
+// ---------------------------------------------------------------------------
+// Provider -> hub: failure
+// ---------------------------------------------------------------------------
+
+/**
+ * How a provider reports that it cannot do something.
+ *
+ * `code` is an **enum**, not a message. This closes the last free-form surface in provider output:
+ * an `{ error: string }` envelope would have been a sentence, authored by the provider, arriving at
+ * the hub on the failure path, which is exactly the surface §46.1 exists to remove. That the failure
+ * path is less travelled than the success path makes it a better place to hide something, not a
+ * worse one.
+ *
+ * The consequence is that the hub owns every message a person reads (see `USER_FACING_MESSAGE`). A
+ * provider can say what went wrong; it cannot say it in its own words.
+ */
+export const providerErrorSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['error_code'],
+  properties: {
+    error_code: {
+      type: 'string',
+      enum: [
+        'INVALID_INPUT',
+        'HOLD_CONFLICT',
+        'HOLD_EXPIRED',
+        'HOLD_NOT_FOUND',
+        'NOT_HOLDABLE',
+        'BACKEND_UNAVAILABLE',
+        'CONTRACT_SELF_CHECK_FAILED',
+        'INTERNAL_ERROR',
+      ],
+    },
+    retryable: { type: 'boolean' },
+    /** For a conflict: when the resource frees up. Nothing about who holds it. */
+    held_until_epoch_ms: { type: 'integer', minimum: 0 },
+    /**
+     * Which field was at fault, for a validation failure. A JSON Pointer, constrained, so it can be
+     * shown in a developer panel without becoming a message channel.
+     */
+    error_path: { type: 'string', pattern: '^(/[A-Za-z0-9_]{1,40}){0,6}$', maxLength: 120 },
+  },
+} as const;

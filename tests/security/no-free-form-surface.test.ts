@@ -102,6 +102,9 @@ describe('provider output contracts have no free-form surface', () => {
       'provider.hold.output',
       'provider.release_hold.output',
       'provider.accept_referral.output',
+      // The failure path is covered too. An `{ error: string }` envelope would have been a sentence
+      // authored by the provider, arriving on the path least likely to be looked at.
+      'provider.error',
     ]);
   });
 

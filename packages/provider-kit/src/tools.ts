@@ -20,6 +20,8 @@
 import {
   V,
   type ProviderAvailability,
+  type ProviderError,
+  type ProviderErrorCode,
   type ProviderHoldOutput,
   type ProviderId,
   type ProviderOffer,
@@ -49,16 +51,33 @@ export type ProviderConfig = {
 };
 
 /**
- * A provider error, as a shape the hub can act on.
+ * A provider error.
  *
  * Deliberately *not* thrown. A rejected promise across `executeTool` gives the hub a string, and a
  * string is not something you can branch on. This is a contract for failure, which is the only kind
  * of failure a federation can actually handle.
+ *
+ * `error_code` is an enum, so this path carries no provider-authored prose either. The hub owns every
+ * message a person reads; a provider can say what went wrong but not say it in its own words.
  */
-type ProviderError = { error: string; retryable: boolean };
+function err(
+  error_code: ProviderErrorCode,
+  extra: { retryable?: boolean; error_path?: string; held_until_epoch_ms?: number } = {},
+): ProviderError {
+  return {
+    error_code,
+    retryable: extra.retryable ?? false,
+    ...(extra.error_path !== undefined ? { error_path: extra.error_path } : {}),
+    ...(extra.held_until_epoch_ms !== undefined
+      ? { held_until_epoch_ms: extra.held_until_epoch_ms }
+      : {}),
+  };
+}
 
-function err(error: string, retryable = false): ProviderError {
-  return { error, retryable };
+/** A JSON Pointer that fits the constrained `error_path` pattern, or nothing. */
+function safePath(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+  return /^(\/[A-Za-z0-9_]{1,40}){0,6}$/.test(path) ? path : undefined;
 }
 
 function nowIso(): string {
@@ -84,7 +103,11 @@ export function buildProviderTools(config: ProviderConfig): ProviderToolDefiniti
         const parsed = V.providerQuery.tryParse(rawInput);
         if (!parsed.ok) {
           note(`query_availability rejected: ${parsed.error.summary}`);
-          return err(`invalid query: ${parsed.error.summary}`);
+          return err('INVALID_INPUT', {
+            ...(safePath(parsed.error.violations[0]?.path) !== undefined
+              ? { error_path: safePath(parsed.error.violations[0]?.path)! }
+              : {}),
+          });
         }
 
         const units = await config.api.units();
@@ -106,7 +129,7 @@ export function buildProviderTools(config: ProviderConfig): ProviderToolDefiniti
         const check = V.providerAvailability.tryParse(result);
         if (!check.ok) {
           note(`own output failed validation: ${check.error.summary}`);
-          return err(`provider produced invalid output: ${check.error.summary}`);
+          return err('CONTRACT_SELF_CHECK_FAILED');
         }
         return result;
       },
@@ -124,12 +147,12 @@ export function buildProviderTools(config: ProviderConfig): ProviderToolDefiniti
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       async execute(rawInput) {
         const parsed = V.providerHoldInput.tryParse(rawInput);
-        if (!parsed.ok) return err(`invalid hold request: ${parsed.error.summary}`);
+        if (!parsed.ok) return err('INVALID_INPUT');
 
         const result = await config.api.hold(parsed.value);
         if (isApiFailure(result)) {
           note(`hold ${parsed.value.resource_id} -> api unreachable`);
-          return err(`provider backend unreachable: ${result.reason}`, true);
+          return err('BACKEND_UNAVAILABLE', { retryable: true });
         }
 
         note(`hold ${parsed.value.resource_id} -> ${result.outcome}`);
@@ -150,7 +173,10 @@ export function buildProviderTools(config: ProviderConfig): ProviderToolDefiniti
           }
           case 'conflict':
             // The conflict carries when the resource frees up and nothing about who holds it.
-            return { error: 'HOLD_CONFLICT', retryable: true, held_until: result.heldUntilEpochMs };
+            return err('HOLD_CONFLICT', {
+              retryable: true,
+              held_until_epoch_ms: result.heldUntilEpochMs,
+            });
           case 'not_holdable':
             return err('NOT_HOLDABLE');
           case 'no_such_resource':
@@ -169,12 +195,12 @@ export function buildProviderTools(config: ProviderConfig): ProviderToolDefiniti
       annotations: { readOnlyHint: false, untrustedContentHint: false, idempotentHint: true },
       async execute(rawInput) {
         const parsed = V.providerReleaseInput.tryParse(rawInput);
-        if (!parsed.ok) return err(`invalid release request: ${parsed.error.summary}`);
+        if (!parsed.ok) return err('INVALID_INPUT');
 
         const result = await config.api.release(parsed.value);
         if (isApiFailure(result)) {
           note(`release ${parsed.value.hold_id} -> api unreachable`);
-          return err(`provider backend unreachable: ${result.reason}`, true);
+          return err('BACKEND_UNAVAILABLE', { retryable: true });
         }
 
         note(`release ${parsed.value.hold_id} -> ${result.status}`);
@@ -201,14 +227,14 @@ export function buildProviderTools(config: ProviderConfig): ProviderToolDefiniti
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       async execute(rawInput) {
         const parsed = V.providerReferralInput.tryParse(rawInput);
-        if (!parsed.ok) return err(`invalid referral: ${parsed.error.summary}`);
+        if (!parsed.ok) return err('INVALID_INPUT');
 
         const result = await config.api.referral(parsed.value);
         if (isApiFailure(result)) {
           // Ambiguous: the referral may or may not have landed. Retryable, and the idempotency key
           // is what makes retrying safe.
           note('accept_referral -> api unreachable');
-          return err(`provider backend unreachable: ${result.reason}`, true);
+          return err('BACKEND_UNAVAILABLE', { retryable: true });
         }
 
         // The log records that a referral arrived, and no field of it. §16.4.
