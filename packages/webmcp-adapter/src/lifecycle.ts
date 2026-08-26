@@ -22,7 +22,7 @@
  * midnight.
  */
 
-import { registerWebMCPTool } from './register.js';
+import { registerWebMCPTool } from './register';
 
 export type ToolDefinition = {
   tool: ModelContextTool;

@@ -17,8 +17,8 @@ import type {
   instantSchema,
   intervalSchema,
   providerStatusSchema,
-} from './schemas/common.js';
-import type { needProfileSchema } from './schemas/need-profile.js';
+} from './schemas/common';
+import type { needProfileSchema } from './schemas/need-profile';
 import type {
   coverOfferSchema,
   offerCapabilitiesSchema,
@@ -32,7 +32,7 @@ import type {
   providerReleaseInputSchema,
   providerReleaseOutputSchema,
   transportOfferSchema,
-} from './schemas/provider.js';
+} from './schemas/provider';
 import type {
   checkPlanInputSchema,
   checkPlanOutputSchema,
@@ -46,7 +46,7 @@ import type {
   planPartSchema,
   releasePlanInputSchema,
   releasePlanOutputSchema,
-} from './schemas/composition.js';
+} from './schemas/composition';
 import type {
   explainGapInputSchema,
   explainGapOutputSchema,
@@ -60,7 +60,7 @@ import type {
   placeHoldOutputSchema,
   releaseHoldInputSchema,
   releaseHoldOutputSchema,
-} from './schemas/hub-tools.js';
+} from './schemas/hub-tools';
 
 // ---------------------------------------------------------------------------
 // Primitives

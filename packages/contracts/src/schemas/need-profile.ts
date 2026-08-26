@@ -13,13 +13,13 @@
  * agent reads these and a truncated description is a mis-selected tool.
  */
 
-import { DURATION_HOURS, STARTS_WITHIN_HOURS } from '../vocabulary.js';
+import { DURATION_HOURS, STARTS_WITHIN_HOURS } from '../vocabulary';
 import {
   instantSchema,
   serviceAreaSchema,
   spokenLanguageSchema,
   supportKindSchema,
-} from './common.js';
+} from './common';
 
 export const needProfileSchema = {
   type: 'object',

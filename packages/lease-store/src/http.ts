@@ -19,7 +19,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { V } from '@threshold/contracts';
-import type { LeaseStore, ResourceCapacity } from './store.js';
+import type { LeaseStore, ResourceCapacity } from './store';
 
 export type LeaseApiOptions = {
   /** Route prefix. Same-origin, so a short path is fine. */

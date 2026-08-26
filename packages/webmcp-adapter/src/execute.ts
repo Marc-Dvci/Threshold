@@ -17,8 +17,8 @@
  * `docs/RUNTIME_TEST_MATRIX.md`, because it is a real platform observation.
  */
 
-import { modelContext, noteRuntime, setRuntime } from './support.js';
-import type { DiscoveredTool } from './discover.js';
+import { modelContext, noteRuntime, setRuntime } from './support';
+import type { DiscoveredTool } from './discover';
 
 export type ExecuteOutcome =
   | { state: 'ok'; raw: string; ms: number }

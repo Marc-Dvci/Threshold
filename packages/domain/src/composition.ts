@@ -34,7 +34,7 @@ import type {
 } from '@threshold/contracts';
 import { LINK_ORDER, isAfter, isBeforeOrEqual, minutesOf } from '@threshold/contracts';
 import { KIND_ROLE } from '@threshold/contracts';
-import type { NormalizedOffer } from './normalize.js';
+import type { NormalizedOffer } from './normalize';
 
 export type CheckPlanResult = {
   feasible: boolean;

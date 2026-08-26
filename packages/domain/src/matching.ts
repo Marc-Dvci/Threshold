@@ -19,7 +19,7 @@
 
 import type { Instant, NeedProfile } from '@threshold/contracts';
 import { durationHours, minutesOf } from '@threshold/contracts';
-import type { NormalizedOffer } from './normalize.js';
+import type { NormalizedOffer } from './normalize';
 
 /**
  * The reference "now".

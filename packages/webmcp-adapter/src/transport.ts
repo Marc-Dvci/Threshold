@@ -22,9 +22,9 @@
  * cross-origin, and that is the accurate thing to say about it.
  */
 
-import { discoverOrigins, type DiscoveredTool, type OriginDiscovery } from './discover.js';
-import { executeWebMCPTool, type ExecuteOutcome } from './execute.js';
-import { hasFederationApi, isWebMCPSupported, noteRuntime, setRuntime } from './support.js';
+import { discoverOrigins, type DiscoveredTool, type OriginDiscovery } from './discover';
+import { executeWebMCPTool, type ExecuteOutcome } from './execute';
+import { hasFederationApi, isWebMCPSupported, noteRuntime, setRuntime } from './support';
 
 export type ExecOptions = { signal?: AbortSignal; timeoutMs?: number };
 

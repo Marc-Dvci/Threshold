@@ -15,7 +15,7 @@
  *    demonstration instead of a mystery.
  */
 
-import { hasFederationApi, modelContext, noteRuntime, setRuntime } from './support.js';
+import { hasFederationApi, modelContext, noteRuntime, setRuntime } from './support';
 
 export type DiscoveredTool = {
   /** The origin that owns the tool. Known by construction, never inferred. */

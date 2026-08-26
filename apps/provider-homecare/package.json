@@ -1,0 +1,28 @@
+{
+  "name": "@threshold/provider-homecare",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5102 --strictPort",
+    "api": "tsx server.ts --api-only --port 6102",
+    "build": "vite build",
+    "serve": "tsx server.ts --port 5102 --static dist",
+    "preview": "vite preview --port 5102 --strictPort",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@threshold/contracts": "workspace:*",
+    "@threshold/provider-kit": "workspace:*",
+    "@threshold/test-fixtures": "workspace:*",
+    "@threshold/webmcp-adapter": "workspace:*"
+  },
+  "devDependencies": {
+    "@threshold/lease-store": "workspace:*",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "tsx": "^4.19.2"
+  }
+}

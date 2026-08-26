@@ -1,5 +1,5 @@
 {
-  "name": "@threshold/lease-store",
+  "name": "@threshold/provider-kit",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -8,7 +8,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./http": "./src/http.ts"
+    "./server": "./src/server.ts",
+    "./provider.css": "./src/provider.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -16,10 +17,12 @@
   },
   "dependencies": {
     "@threshold/contracts": "workspace:*",
-    "@threshold/domain": "workspace:*"
+    "@threshold/domain": "workspace:*",
+    "@threshold/lease-store": "workspace:*",
+    "@threshold/webmcp-adapter": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2"
   }
 }

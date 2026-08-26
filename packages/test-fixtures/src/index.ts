@@ -6,5 +6,5 @@
  * describing different things.
  */
 
-export * from './inventories.js';
-export * from './scenarios.js';
+export * from './inventories';
+export * from './scenarios';

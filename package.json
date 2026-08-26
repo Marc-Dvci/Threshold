@@ -26,6 +26,7 @@
     "@threshold/domain": "workspace:*",
     "@threshold/test-fixtures": "workspace:*",
     "@threshold/webmcp-adapter": "workspace:*",
-    "@threshold/lease-store": "workspace:*"
+    "@threshold/lease-store": "workspace:*",
+    "@threshold/provider-kit": "workspace:*"
   }
 }

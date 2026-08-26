@@ -1,0 +1,196 @@
+/*
+ * The provider page's own look.
+ *
+ * Four different organisations share this stylesheet and differ only by an accent, set per app as
+ * `--accent`. They are meant to read as four separate small institutional websites: plain, dense,
+ * slightly dated, the sort of thing a care provider actually runs. Anything that looked like one
+ * designed product would undercut the claim that these are independent organisations.
+ *
+ * Light and dark are both defined explicitly on :root and re-declared under prefers-color-scheme,
+ * so nothing borrows a colour from the host.
+ */
+
+:root {
+  --accent: #2d5f8a;
+  --bg: #f6f6f4;
+  --panel: #ffffff;
+  --ink: #1a1a1a;
+  --ink-soft: #565656;
+  --line: #d9d9d4;
+  --ok: #1c6b3f;
+  --warn: #8a4b00;
+  --danger: #99231f;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181a;
+    --panel: #1f2225;
+    --ink: #ececea;
+    --ink-soft: #a4a8ac;
+    --line: #33383d;
+    --ok: #58c98b;
+    --warn: #e0a35c;
+    --danger: #e8837e;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+#app { max-width: 62rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+
+/* --- masthead --------------------------------------------------------- */
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 3px solid var(--accent);
+  margin-bottom: 1.5rem;
+}
+
+.org { display: flex; gap: 0.85rem; align-items: center; }
+
+.mark {
+  width: 2.5rem; height: 2.5rem; flex: none;
+  border-radius: 4px;
+  background: var(--accent);
+  /* A crude institutional block rather than a logo. These organisations have not had a rebrand. */
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent) 60%, white);
+}
+
+h1 { font-size: 1.2rem; margin: 0; letter-spacing: -0.01em; }
+.strapline { margin: 0.15rem 0 0; color: var(--ink-soft); font-size: 0.85rem; }
+
+.status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.status.online { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.status.offline { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+
+/* --- sections --------------------------------------------------------- */
+
+main { display: grid; gap: 1.25rem; }
+
+section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1.1rem 1.25rem;
+}
+
+h2 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  font-weight: 700;
+}
+
+.note { color: var(--ink-soft); font-size: 0.82rem; margin: 0.75rem 0 0; max-width: 46rem; }
+
+code {
+  font: 0.85em/1.4 var(--mono);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  word-break: break-all;
+}
+
+/* --- definition list -------------------------------------------------- */
+
+.facts {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+  font-size: 0.88rem;
+}
+.facts dt { color: var(--ink-soft); }
+.facts dd { margin: 0; }
+
+/* --- inventory table -------------------------------------------------- */
+
+.inventory { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.inventory th, .inventory td {
+  text-align: left;
+  padding: 0.45rem 0.6rem 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.inventory thead th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+.inventory tbody th { font-weight: 500; }
+.inventory .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.inventory tr.depleted { color: var(--ink-soft); }
+.inventory tr.depleted code { text-decoration: line-through; }
+.muted { color: var(--ink-soft); }
+
+/* --- request log ------------------------------------------------------ */
+
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font: 0.8rem/1.7 var(--mono);
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.log li { padding: 0.15rem 0.6rem; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
+.log li:last-child { border-bottom: 0; }
+.log:empty::after {
+  content: "No requests yet.";
+  display: block;
+  padding: 0.6rem;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+}
+
+/* --- controls --------------------------------------------------------- */
+
+.control { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--line); }
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 0.95rem;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+button:hover { border-color: var(--ink-soft); }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+button.danger[aria-pressed="true"] { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+
+@media (max-width: 34rem) {
+  .facts { grid-template-columns: 1fr; gap: 0.1rem; }
+  .facts dt { margin-top: 0.5rem; }
+  .inventory { font-size: 0.8rem; }
+}

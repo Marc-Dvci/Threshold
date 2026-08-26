@@ -21,9 +21,9 @@ import {
   providerStatusSchema,
   resourceIdSchema,
   supportKindSchema,
-} from './common.js';
-import { needProfileSchema } from './need-profile.js';
-import { planPartRoleSchema } from './composition.js';
+} from './common';
+import { needProfileSchema } from './need-profile';
+import { planPartRoleSchema } from './composition';
 
 // ---------------------------------------------------------------------------
 // find_support

@@ -6,9 +6,9 @@
  * can be told out loud and can argue with, which is the difference between a decision and an opinion.
  */
 
-export * from './ids.js';
-export * from './projection.js';
-export * from './normalize.js';
-export * from './matching.js';
-export * from './composition.js';
-export * from './ranking.js';
+export * from './ids';
+export * from './projection';
+export * from './normalize';
+export * from './matching';
+export * from './composition';
+export * from './ranking';

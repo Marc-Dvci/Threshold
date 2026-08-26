@@ -7,7 +7,7 @@
  * runtime report so `/verify` can show it.
  */
 
-import { modelContext, noteRuntime, setRuntime } from './support.js';
+import { modelContext, noteRuntime, setRuntime } from './support';
 
 /** Chrome's documented guidance. Exceeding these does not throw; it degrades tool selection. */
 export const BUDGETS = {

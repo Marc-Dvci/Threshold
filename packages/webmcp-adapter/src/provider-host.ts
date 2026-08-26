@@ -12,10 +12,10 @@
  * leaving is showing federation; a hub that catches an exception is showing error handling.
  */
 
-import { encodeProviderResult } from './encode.js';
-import { registerWebMCPTool } from './register.js';
-import { isWebMCPSupported } from './support.js';
-import { PM_PROTOCOL, type PmRequest, type PmResponse } from './transport.js';
+import { encodeProviderResult } from './encode';
+import { registerWebMCPTool } from './register';
+import { isWebMCPSupported } from './support';
+import { PM_PROTOCOL, type PmRequest, type PmResponse } from './transport';
 
 export type ProviderToolDefinition = {
   name: string;

@@ -6,15 +6,15 @@
  * so a contract change is a compile error on both sides of the boundary at once.
  */
 
-export * from './vocabulary.js';
-export * from './time.js';
-export * from './envelope.js';
-export * from './types.js';
-export * from './validate.js';
-export * from './contracts.js';
+export * from './vocabulary';
+export * from './time';
+export * from './envelope';
+export * from './types';
+export * from './validate';
+export * from './contracts';
 
-export * from './schemas/common.js';
-export * from './schemas/need-profile.js';
-export * from './schemas/provider.js';
-export * from './schemas/composition.js';
-export * from './schemas/hub-tools.js';
+export * from './schemas/common';
+export * from './schemas/need-profile';
+export * from './schemas/provider';
+export * from './schemas/composition';
+export * from './schemas/hub-tools';

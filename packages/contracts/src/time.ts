@@ -15,8 +15,8 @@
  * integer comparisons.
  */
 
-import { CLOCK_TIME_PATTERN, type DayOffset } from './vocabulary.js';
-import type { ClockTime, Instant } from './types.js';
+import { CLOCK_TIME_PATTERN, type DayOffset } from './vocabulary';
+import type { ClockTime, Instant } from './types';
 
 export type { ClockTime, Instant };
 

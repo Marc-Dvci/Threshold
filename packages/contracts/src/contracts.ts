@@ -19,7 +19,7 @@ import {
   placePlanHoldsOutputSchema,
   releasePlanInputSchema,
   releasePlanOutputSchema,
-} from './schemas/composition.js';
+} from './schemas/composition';
 import {
   explainGapInputSchema,
   explainGapOutputSchema,
@@ -33,7 +33,7 @@ import {
   placeHoldOutputSchema,
   releaseHoldInputSchema,
   releaseHoldOutputSchema,
-} from './schemas/hub-tools.js';
+} from './schemas/hub-tools';
 import {
   providerAvailabilitySchema,
   providerHoldInputSchema,
@@ -43,8 +43,8 @@ import {
   providerReferralOutputSchema,
   providerReleaseInputSchema,
   providerReleaseOutputSchema,
-} from './schemas/provider.js';
-import { validator } from './validate.js';
+} from './schemas/provider';
+import { validator } from './validate';
 import type {
   CheckPlanInput,
   CheckPlanOutput,
@@ -73,7 +73,7 @@ import type {
   ReleaseHoldOutput,
   ReleasePlanInput,
   ReleasePlanOutput,
-} from './types.js';
+} from './types';
 
 // ---------------------------------------------------------------------------
 // Agent -> hub

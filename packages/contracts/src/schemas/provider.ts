@@ -26,7 +26,7 @@ import {
   spokenLanguagesSchema,
   spokenLanguageSchema,
   supportKindSchema,
-} from './common.js';
+} from './common';
 
 // ---------------------------------------------------------------------------
 // Hub -> provider: the query

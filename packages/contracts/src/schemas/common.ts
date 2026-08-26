@@ -18,7 +18,7 @@ import {
   SERVICE_AREAS,
   SPOKEN_LANGUAGES,
   SUPPORT_KINDS,
-} from '../vocabulary.js';
+} from '../vocabulary';
 
 /**
  * A resource identifier.

@@ -12,7 +12,7 @@
  * string would be attacker-controlled. `tests/security` scopes its check accordingly.
  */
 
-import { LINK_KINDS, PLAN_PART_ROLES } from '../vocabulary.js';
+import { LINK_KINDS, PLAN_PART_ROLES } from '../vocabulary';
 import {
   instantSchema,
   intervalSchema,
@@ -21,9 +21,9 @@ import {
   resourceIdSchema,
   serviceAreaSchema,
   supportKindSchema,
-} from './common.js';
-import { offerCapabilitiesSchema } from './provider.js';
-import { needProfileSchema } from './need-profile.js';
+} from './common';
+import { offerCapabilitiesSchema } from './provider';
+import { needProfileSchema } from './need-profile';
 
 export const planPartRoleSchema = {
   type: 'string',
