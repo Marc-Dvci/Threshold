@@ -1,0 +1,89 @@
+# Four origins, one blueprint.
+#
+# `render blueprint launch`, or connect the repository in the Render dashboard and point it at this
+# file. Four services come up on four `*.onrender.com` hostnames, which are four genuinely distinct
+# origins on HTTPS, which is what WebMCP requires and what this entry is about.
+#
+# **The one thing to get right.** Every service is built with all four origin URLs in its
+# environment, because `import.meta.env` is read when the bundle is built. If a hostname changes,
+# rebuild; a deployment whose origins are stale fails as a silent discovery timeout rather than as an
+# error anybody can read. `/verify` on the hub says which origins it actually reached, so the check
+# takes ten seconds.
+#
+# Service names decide hostnames, so changing a name here means changing every URL below it.
+
+services:
+  - type: web
+    name: threshold-hub
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /verify.html
+    dockerBuildArgs:
+      APP: hub
+      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
+      VITE_ORIGIN_RESPITE: https://threshold-respite.onrender.com
+      VITE_ORIGIN_HOMECARE: https://threshold-homecare.onrender.com
+      VITE_ORIGIN_TRANSPORT: https://threshold-transport.onrender.com
+    envVars:
+      - key: VITE_ORIGIN_RESPITE
+        value: https://threshold-respite.onrender.com
+      - key: VITE_ORIGIN_HOMECARE
+        value: https://threshold-homecare.onrender.com
+      - key: VITE_ORIGIN_TRANSPORT
+        value: https://threshold-transport.onrender.com
+
+  - type: web
+    name: threshold-respite
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /api/units
+    dockerBuildArgs:
+      APP: provider-respite
+      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
+      VITE_RESET_TOKEN: demo-reset
+    envVars:
+      # The one origin allowed to frame this organisation's page. The other half of the same gate is
+      # `exposedTo` on the tools themselves.
+      - key: VITE_HUB_ORIGIN
+        value: https://threshold-hub.onrender.com
+      # The demo reset token. Deliberately a fixed, published value rather than a generated one:
+      # the provider's own page has to send it, the page is built ahead of time, and a token the
+      # page cannot know is a reset button that never works. It is a speed bump so the route is not
+      # something a crawler trips over, which is all §29 asks of it. Without any token the route
+      # refuses outright.
+      - key: THRESHOLD_RESET_TOKEN
+        value: demo-reset
+
+  - type: web
+    name: threshold-homecare
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /api/units
+    dockerBuildArgs:
+      APP: provider-homecare
+      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
+      VITE_RESET_TOKEN: demo-reset
+    envVars:
+      - key: VITE_HUB_ORIGIN
+        value: https://threshold-hub.onrender.com
+      - key: THRESHOLD_RESET_TOKEN
+        value: demo-reset
+
+  - type: web
+    name: threshold-transport
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /api/units
+    dockerBuildArgs:
+      APP: provider-transport
+      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
+      VITE_RESET_TOKEN: demo-reset
+    envVars:
+      - key: VITE_HUB_ORIGIN
+        value: https://threshold-hub.onrender.com
+      - key: THRESHOLD_RESET_TOKEN
+        value: demo-reset

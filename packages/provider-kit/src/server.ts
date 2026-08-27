@@ -157,5 +157,9 @@ export function parseServerArgs(argv: readonly string[]): {
     else if (arg === '--api-only') out.apiOnly = true;
     else if (arg === '--static') out.staticDir = argv[i + 1];
   }
+  // A platform that assigns the port does so through the environment, and it wins over a default
+  // baked into a script. An explicit `--port` still wins over both, because that is what a person
+  // typing it meant.
+  if (out.port === undefined && process.env.PORT) out.port = Number(process.env.PORT);
   return out;
 }

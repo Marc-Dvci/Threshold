@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "One web page where several independent care organisations answer a person's agent at the same time and compose one plan between them, over WebMCP.",
   "license": "MIT",
+  "packageManager": "pnpm@9.15.9",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -32,5 +33,10 @@
     "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

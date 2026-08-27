@@ -263,6 +263,25 @@ a keyboard alone, an organisation can genuinely withdraw, two sessions genuinely
 bed, and axe finds no WCAG 2.1 AA violation on any page in any state including the consent panel
 with an error showing.
 
+### Deploying it
+
+Four origins on HTTPS, because WebMCP is secure-context only and cross-origin tools need an
+origin-keyed document at both ends. One Docker image builds all four apps, selected by build
+argument, and `render.yaml` brings the whole thing up as four services in one command.
+
+```bash
+render blueprint launch
+```
+
+The one thing that goes wrong: **origins are baked in at build time**, because `import.meta.env` is
+read when the bundle is built. A deployment with stale origins does not error, it sits there timing
+out on discovery. `/verify.html` prints the origins it actually reached, which makes that a
+ten-second check. Full detail, including the header set and the one compromise in it, is in
+`docs/DEPLOYMENT.md`.
+
+Verified end to end before writing that down: four containers on four ports, real WebMCP federation
+in Chrome 151, a plan composed and three leases taken across three origins, no console errors.
+
 ### Browser requirements
 
 WebMCP needs a secure context and an origin-keyed document; both dev servers and the production
@@ -330,6 +349,8 @@ tests/security            The structural no-free-form-surface proof.
 tests/e2e                 The real pages in a real browser, plus the axe audit.
 docs/THREAT_MODEL.md      What is controlled, and what is not.
 docs/RUNTIME_TEST_MATRIX.md   What each browser actually did.
+docs/DEPLOYMENT.md        Four origins, the headers, and what breaks if they are stale.
+Dockerfile, render.yaml   One image, four apps; four services, one command.
 ```
 
 ## Threat model

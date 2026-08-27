@@ -8,7 +8,7 @@
     "dev": "vite --port 5103 --strictPort",
     "api": "tsx server.ts --api-only --port 6103",
     "build": "vite build",
-    "serve": "tsx server.ts --port 5103 --static dist",
+    "serve": "tsx server.ts --static dist",
     "preview": "vite preview --port 5103 --strictPort",
     "typecheck": "tsc --noEmit"
   },
