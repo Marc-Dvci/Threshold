@@ -13,6 +13,17 @@
  *  - one slow or dead origin cannot stall the others, because each query has its own timeout;
  *  - a provider that has gone offline is attributable, which is what makes §45's offline control a
  *    demonstration instead of a mystery.
+ *
+ * **Measured platform behaviour, Chrome 151.0.7922.34.** `getTools({ fromOrigins: [X] })` returns
+ * the calling document's *own* tools as well as X's — `fromOrigins` widens the default allowlist of
+ * `['self']` rather than replacing it. Left alone, that puts the hub's own `find_support` in every
+ * provider's tool list, and `/verify` would then print a false statement about federation on the one
+ * page whose entire job is to be true. Worse, the hub and a provider both publish a tool called
+ * `release_hold`, so excluding by name would drop a real provider tool.
+ *
+ * The same browser does populate `RegisteredTool.origin`, so tools are filtered on it where it is
+ * present, and the queried origin stands where it is not. That asymmetry is the reason discovery
+ * queries one origin at a time in the first place: the fallback is still correct.
  */
 
 import { hasFederationApi, modelContext, noteRuntime, setRuntime } from './support';
@@ -74,13 +85,17 @@ export async function discoverOrigin(
       timeoutMs,
       `getTools(${origin})`,
     );
-    const tools: DiscoveredTool[] = found.map((handle) => ({
-      origin,
-      name: handle.name,
-      handle,
-      ...(handle.description !== undefined ? { description: handle.description } : {}),
-      ...(handle.annotations !== undefined ? { annotations: handle.annotations } : {}),
-    }));
+    const tools: DiscoveredTool[] = found
+      // Drop anything the browser attributed to another origin — in practice, this document's own
+      // tools, which `fromOrigins` includes alongside the ones asked for.
+      .filter((handle) => handle.origin === undefined || handle.origin === origin)
+      .map((handle) => ({
+        origin,
+        name: handle.name,
+        handle,
+        ...(handle.description !== undefined ? { description: handle.description } : {}),
+        ...(handle.annotations !== undefined ? { annotations: handle.annotations } : {}),
+      }));
     if (tools.length > 0) setRuntime('getToolsCrossOrigin', 'present');
     return { origin, state: 'ok', tools, ms: Date.now() - started };
   } catch (e) {

@@ -446,10 +446,15 @@ export class HubCore {
     });
     this.deps.log.planChecked(planId, result.feasible, failedLinks(result).length);
 
+    // The plan id is carried whether or not the plan works, because the failing case is the one a
+    // person most needs to see: the page has to be able to render *which* link failed and which
+    // organisation to go back to. What the feasible case additionally buys is the tag, and the tag
+    // is what decides the tool surface — so an infeasible plan is fully visible and still cannot be
+    // leased against, which is exactly the intended pair of properties.
     this.deps.machine.transition({
       tag: result.feasible ? 'PLAN_COMPOSED' : 'SEARCHED',
       search_id: session.search_id,
-      ...(result.feasible ? { plan_id: planId } : {}),
+      plan_id: planId,
       hold_ids: [],
     });
 

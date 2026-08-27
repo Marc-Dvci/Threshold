@@ -10,6 +10,17 @@
  * provider's tools genuinely disappear and the hub finds out through `toolchange` rather than by
  * catching an error. That distinction is the whole demonstration: a hub that *notices* a provider
  * leaving is showing federation; a hub that catches an exception is showing error handling.
+ *
+ * **Why the offline state travels on a BroadcastChannel.** §45 puts the switch on the provider's own
+ * page, which is right: the hub is not in charge of the provider. But tools are registered per
+ * *document*, and the document a judge throws the switch in is a second tab — not the copy of this
+ * page living in the hub's iframe. Toggling one would leave the other registered, and the
+ * demonstration would show nothing at all.
+ *
+ * A `BroadcastChannel` is same-origin by construction, so it reaches exactly the documents that
+ * belong to this organisation and no others. That is not a workaround for the design; it is the
+ * design stated properly: an organisation withdrawing its tools withdraws them everywhere it is
+ * open, and one origin cannot reach into another's.
  */
 
 import { encodeProviderResult } from './encode';
@@ -40,17 +51,39 @@ export type ProviderHostOptions = {
   onStateChange?: (online: boolean) => void;
 };
 
+/** The same-origin channel that keeps every open copy of a provider's page in step. */
+const OFFLINE_CHANNEL = 'threshold.provider.state';
+
 export class ProviderHost {
   private controller: AbortController | null = null;
   private online = false;
   private pmInstalled = false;
   private readonly byName = new Map<string, ProviderToolDefinition>();
+  private readonly channel: BroadcastChannel | null;
 
   constructor(
     private readonly definitions: readonly ProviderToolDefinition[],
     private readonly options: ProviderHostOptions,
   ) {
     for (const def of definitions) this.byName.set(def.name, def);
+
+    this.channel =
+      typeof BroadcastChannel === 'function' ? new BroadcastChannel(OFFLINE_CHANNEL) : null;
+    this.channel?.addEventListener('message', (event: MessageEvent) => {
+      const data = event.data as { online?: unknown } | undefined;
+      if (typeof data?.online !== 'boolean') return;
+      // Applied without re-broadcasting, or two open tabs would echo at each other forever.
+      void this.apply(data.online, { broadcast: false });
+    });
+  }
+
+  private async apply(online: boolean, options: { broadcast: boolean }): Promise<void> {
+    if (online === this.online) return;
+    if (online) {
+      await this.goOnline({ broadcast: options.broadcast });
+    } else {
+      this.goOffline({ broadcast: options.broadcast });
+    }
   }
 
   isOnline(): boolean {
@@ -69,7 +102,7 @@ export class ProviderHost {
    * over the transport it guessed the hub would pick would be a provider that fails in exactly the
    * browser nobody tested.
    */
-  async goOnline(): Promise<void> {
+  async goOnline(options: { broadcast?: boolean } = {}): Promise<void> {
     if (this.online) return;
 
     this.installPostMessageResponder();
@@ -98,6 +131,7 @@ export class ProviderHost {
     }
 
     this.online = true;
+    if (options.broadcast !== false) this.channel?.postMessage({ online: true });
     this.options.onStateChange?.(true);
   }
 
@@ -108,11 +142,12 @@ export class ProviderHost {
    * `toolchange` on the hub. The `postMessage` responder starts refusing at the same moment, so the
    * provider is offline on both transports and the demonstration reads the same either way.
    */
-  goOffline(): void {
+  goOffline(options: { broadcast?: boolean } = {}): void {
     if (!this.online) return;
     this.controller?.abort();
     this.controller = null;
     this.online = false;
+    if (options.broadcast !== false) this.channel?.postMessage({ online: false });
     this.options.onStateChange?.(false);
   }
 
@@ -123,6 +158,11 @@ export class ProviderHost {
       await this.goOnline();
     }
     return this.online;
+  }
+
+  /** Close the channel. Tests and teardown; a leaked channel keeps a document alive. */
+  destroy(): void {
+    this.channel?.close();
   }
 
   private installPostMessageResponder(): void {

@@ -10,23 +10,26 @@
   },
   "scripts": {
     "build": "pnpm -r --filter './packages/*' build && pnpm -r --filter './apps/*' build",
-    "dev": "pnpm -r --parallel --filter './apps/*' dev",
+    "dev": "node scripts/dev.mjs",
+    "dev:apps": "pnpm -r --parallel --filter './apps/*' dev",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "verify": "pnpm typecheck && pnpm test",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r exec rm -rf dist node_modules/.vite"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@threshold/contracts": "workspace:*",
-    "@types/node": "^22.10.2",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
     "@threshold/domain": "workspace:*",
+    "@threshold/lease-store": "workspace:*",
+    "@threshold/provider-kit": "workspace:*",
     "@threshold/test-fixtures": "workspace:*",
     "@threshold/webmcp-adapter": "workspace:*",
-    "@threshold/lease-store": "workspace:*",
-    "@threshold/provider-kit": "workspace:*"
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }
