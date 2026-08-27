@@ -19,7 +19,7 @@ services:
     name: threshold-hub
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: 0.5c-512mb
+    plan: free
     healthCheckPath: /verify.html
     envVars:
       # Which app in the workspace this image serves. Read at build time and at run time.
@@ -40,7 +40,7 @@ services:
     name: threshold-respite
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: 0.5c-512mb
+    plan: free
     healthCheckPath: /api/units
     envVars:
       - key: APP
@@ -63,7 +63,7 @@ services:
     name: threshold-homecare
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: 0.5c-512mb
+    plan: free
     healthCheckPath: /api/units
     envVars:
       - key: APP
@@ -79,7 +79,7 @@ services:
     name: threshold-transport
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: 0.5c-512mb
+    plan: free
     healthCheckPath: /api/units
     envVars:
       - key: APP
