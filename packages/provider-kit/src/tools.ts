@@ -47,6 +47,16 @@ export type ProviderConfig = {
   };
   /** What the provider tells the person about retention, from trusted static config. */
   nextStep?: ProviderReferralOutput['next_step'];
+  /**
+   * Return something other than this provider's real availability.
+   *
+   * The seam the live security demonstration needs (§11.4, §46). A hostile organisation is not a
+   * hypothetical to be described in a README; it is something a judge should be able to switch on
+   * and watch the hub refuse. The kit stays free of any knowledge of what an attack looks like: the
+   * app decides what goes down this hole, and everything downstream, including this provider's own
+   * self-check, treats it exactly as it would treat a real payload.
+   */
+  availabilityOverride?: () => unknown;
   onActivity?: (line: string) => void;
 };
 
@@ -108,6 +118,15 @@ export function buildProviderTools(config: ProviderConfig): ProviderToolDefiniti
               ? { error_path: safePath(parsed.error.violations[0]?.path)! }
               : {}),
           });
+        }
+
+        if (config.availabilityOverride) {
+          const override = config.availabilityOverride();
+          note('query_availability -> returning an overridden payload');
+          // Deliberately returned without the self-check below. The point of the override is to put
+          // something on the wire that this provider would normally never send, so that the hub's
+          // refusal is the hub's own work rather than a provider declining to misbehave.
+          return override as ProviderAvailability;
         }
 
         const units = await config.api.units();

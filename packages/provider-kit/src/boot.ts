@@ -15,6 +15,42 @@ import { environmentBlockers, isWebMCPSupported } from '@threshold/webmcp-adapte
 
 import { buildProviderTools, type ProviderConfig } from './tools';
 
+/**
+ * Where a demonstration flag lives so that every document of this origin agrees about it.
+ *
+ * A control on the provider's own page is thrown in a *tab*, and the document the hub has framed is
+ * a different document. A flag in `localStorage` is shared by both, and a reload nudge on a
+ * same-origin `BroadcastChannel` is how the framed copy finds out to pick it up. Both mechanisms are
+ * same-origin by construction, which is the property that matters: one organisation cannot flip a
+ * switch inside another.
+ */
+const DEMO_CHANNEL = 'threshold.provider.state';
+const HOSTILE_KEY = 'threshold.demo.hostile';
+
+function readFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === '1';
+  } catch {
+    // Storage can be unavailable (private mode, blocked site data). A demonstration flag is not
+    // worth an exception on boot.
+    return false;
+  }
+}
+
+function writeFlag(key: string, value: boolean): void {
+  try {
+    if (value) localStorage.setItem(key, '1');
+    else localStorage.removeItem(key);
+  } catch {
+    /* nothing to do; the toggle simply will not persist */
+  }
+}
+
+/** True when this origin has been asked to answer with a deliberately hostile payload. §46. */
+export function hostileModeEnabled(): boolean {
+  return readFlag(HOSTILE_KEY);
+}
+
 export type BootOptions = ProviderConfig & {
   hubOrigin: string;
   /** The organisation's line of business, for its own page. */
@@ -26,6 +62,13 @@ export type BootOptions = ProviderConfig & {
    * care provider offline is not a thing to leave on a deployed page.
    */
   showControl?: boolean;
+  /**
+   * The token the organisation's own reset route expects.
+   *
+   * A speed bump, not a secret, and it is the provider's own: this page is same-origin with the
+   * backend it is asking. The hub never sees it and could not use it if it did.
+   */
+  resetToken?: string;
 };
 
 const MAX_LOG_LINES = 60;
@@ -82,12 +125,37 @@ export function bootProvider(options: BootOptions): ProviderHost {
           other organisations answering the same request.
         </p>
         ${
+          options.availabilityOverride
+            ? `<p class="note warn-note">
+                 This organisation is currently answering with a deliberately hostile payload, for the
+                 security demonstration. What it is sending is not shown here, and the coordinating
+                 page will not show it either.
+               </p>`
+            : ''
+        }
+        ${
           options.showControl
             ? `<div class="control">
                  <button id="toggle" type="button" class="danger"></button>
                  <p class="note">
                    Withdraws this organisation's tools. The coordinating page finds out because the
-                   tool set changed, not because a request failed.
+                   tool set changed, not because a request failed. Every tab of this site follows,
+                   including the one the coordinating page has framed.
+                 </p>
+                 <button id="hostile" type="button" class="danger">${
+                   options.availabilityOverride
+                     ? 'Stop answering with a hostile payload'
+                     : 'Answer with a hostile payload'
+                 }</button>
+                 <p class="note">
+                   Makes this organisation return a model instruction in a field the contract does not
+                   have. Watch the coordinating page refuse it, name the rule, and print none of it.
+                 </p>
+                 <button id="reset" type="button">Restore seeded availability</button>
+                 <p class="note">
+                   Releases every hold and deletes every referral held by <em>this</em> organisation.
+                   The coordinating page cannot do this: it reaches us over WebMCP, not by calling
+                   our booking system.
                  </p>
                </div>`
             : ''
@@ -180,9 +248,34 @@ export function bootProvider(options: BootOptions): ProviderHost {
     void host.toggle();
   });
 
+  // The reload nudge. Every open document of this origin, including the one the coordinating page
+  // has framed, comes back with the current demonstration flags.
+  const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(DEMO_CHANNEL) : null;
+  channel?.addEventListener('message', (event: MessageEvent) => {
+    if ((event.data as { reload?: unknown })?.reload === true) location.reload();
+  });
+
+  root.querySelector<HTMLButtonElement>('#hostile')?.addEventListener('click', () => {
+    writeFlag(HOSTILE_KEY, !hostileModeEnabled());
+    channel?.postMessage({ reload: true });
+    location.reload();
+  });
+
   const refreshInventory = async () => {
     renderInventory(await options.api.units());
   };
+
+  root.querySelector<HTMLButtonElement>('#reset')?.addEventListener('click', () => {
+    // Same-origin, to this organisation's own backend, with the token. Build plan §29.
+    void fetch('/api/reset', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ token: options.resetToken ?? 'demo-reset' }),
+    })
+      .then((res) => pushLog(res.ok ? 'availability restored' : 'reset refused'))
+      .then(() => refreshInventory());
+  });
 
   void host.goOnline().then(async () => {
     renderStatus(host.isOnline());

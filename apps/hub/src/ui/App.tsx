@@ -22,6 +22,7 @@ import { displayNameFor } from '../broker/registry';
 import { BoundaryLogPanel } from './BoundaryLogPanel';
 import { ConsentPanel } from './ConsentPanel';
 import { PlanDocument } from './PlanDocument';
+import { SecurityPanel } from './SecurityPanel';
 import { formatCountdown, useBoundaryLog, useConsent, useHubView, useNow } from './hooks';
 
 const STATE_CAPTIONS: Record<string, string> = {
@@ -36,6 +37,8 @@ const STATE_CAPTIONS: Record<string, string> = {
 };
 
 export function App({ hub }: { hub: HubApp }) {
+  const showControls =
+    typeof location !== 'undefined' && new URLSearchParams(location.search).has('control');
   const view = useHubView(hub);
   const consent = useConsent(hub);
   const events = useBoundaryLog(hub);
@@ -274,6 +277,8 @@ export function App({ hub }: { hub: HubApp }) {
 
         {referral && <PlanDocument receipt={referral} />}
 
+        <SecurityPanel session={search} />
+
         <BoundaryLogPanel events={events} />
       </main>
 
@@ -285,6 +290,23 @@ export function App({ hub }: { hub: HubApp }) {
         <p>
           <a href="/verify.html">Verify the federation in this browser</a>
         </p>
+        {showControls && (
+          <p>
+            {/*
+              Behind a query flag, for the same reason the providers' offline switches are: a public
+              button that empties three care organisations' diaries is not something to leave on a
+              deployed page (§29). It exists because a demo that starts from dirty state fails on the
+              day, and re-recording a take should not mean restarting seven processes.
+            */}
+            <button type="button" className="secondary" onClick={() => void resetSession(hub)}>
+              Forget this session
+            </button>{' '}
+            <span className="note">
+              Clears the search, the plan and the log on this page. Each organisation restores its own
+              inventory from its own page, because this page is not in charge of theirs.
+            </span>
+          </p>
+        )}
       </footer>
 
       {consent && <ConsentPanel view={consent} controller={hub.consent} />}
@@ -318,4 +340,19 @@ function TransportBadge({ kind, ready }: { kind: 'webmcp' | 'postmessage' | 'non
     );
   }
   return <p className="transport fallback">No transport available.</p>;
+}
+
+/**
+ * Forget this session. §29.
+ *
+ * The hub's half of a demo reset, and only its half. It does **not** reach into the organisations'
+ * inventories, because it cannot and must not: the hub talks to providers over WebMCP or the bridge,
+ * never by calling their HTTP APIs across origins (§23.8). A hub that could POST to three booking
+ * systems to tidy up after itself would have quietly stopped being a federation.
+ *
+ * Each organisation has its own reset, on its own page, under the same query flag. That is one more
+ * click per origin and one less lie about who is in charge of what.
+ */
+async function resetSession(hub: HubApp): Promise<void> {
+  await hub.reset();
 }

@@ -174,6 +174,7 @@ export class HubCore {
 
     const offers: NormalizedOffer[] = [];
     const statuses: ProviderStatus[] = [];
+    const rejections: Array<{ provider_id: ProviderId; rule: string; path: string }> = [];
 
     for (const answer of answers) {
       if (!answer) continue;
@@ -203,6 +204,7 @@ export class HubCore {
             state: 'contract_error',
             ...(result.path ? { error_path: result.path } : {}),
           });
+          rejections.push({ provider_id: entry.id, rule: result.summary, path: result.path });
           this.deps.log.contractViolation(entry.id, result.summary);
           break;
         case 'timeout':
@@ -248,6 +250,7 @@ export class HubCore {
       exact: rankedExact,
       nearMisses: rankedNear,
       providerStatuses: statuses,
+      rejections,
       createdAtEpochMs: this.now(),
     };
     this.deps.store.putSearch(session);

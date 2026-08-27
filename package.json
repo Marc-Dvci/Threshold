@@ -21,6 +21,7 @@
     "clean": "pnpm -r exec rm -rf dist node_modules/.vite"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@threshold/contracts": "workspace:*",
     "@threshold/domain": "workspace:*",

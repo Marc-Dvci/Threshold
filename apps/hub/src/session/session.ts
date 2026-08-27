@@ -38,6 +38,15 @@ export type SearchSession = {
   /** Offers failing one or two relaxable requirements, ranked. */
   nearMisses: readonly NormalizedOffer[];
   providerStatuses: readonly ProviderStatus[];
+  /**
+   * Payloads refused at the trust boundary during this search.
+   *
+   * Kept so the page can show what was rejected and why. It carries the rule and the offending
+   * field *name*, and there is nowhere in this type to put the rejected value: a panel that
+   * displayed a provider's malicious string in order to prove it had been blocked would have put
+   * the string on the page, which is the thing being prevented (§11.4).
+   */
+  rejections: ReadonlyArray<{ provider_id: ProviderId; rule: string; path: string }>;
   createdAtEpochMs: number;
 };
 

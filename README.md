@@ -232,16 +232,36 @@ pnpm dev        # seven processes: four web origins, three provider backends
 | Selwyn Overnight Care | <http://localhost:5102> |
 | Northgate Accessible Transport | <http://localhost:5103> |
 
-Append `?control` to any provider URL for that organisation's offline switch. It is behind a query
-flag on purpose: a public button that takes a care provider offline is not something to leave on a
-deployed page. Throwing it in one tab withdraws that organisation's tools everywhere it is open, so
-the hub in another tab notices through `ontoolchange`.
+### The three switches a judge should throw
+
+Append `?control` to any provider URL, or to the hub's. Everything is behind a query flag on
+purpose: a public button that takes a care provider offline, or makes one answer with an attack, is
+not something to leave on a deployed page.
+
+| Where | Control | What to watch |
+|---|---|---|
+| any provider `?control` | **Take this organisation offline** | The hub's panel turns unavailable because the *tool set changed*, not because a request failed. Search again: the other two answer, the missing role is named. |
+| respite `?control` | **Answer with a hostile payload** | The hub refuses the whole response, names the rule and the field, keeps the other two, and prints none of the attacker's text. Check the DOM. |
+| any provider `?control` | **Restore seeded availability** | Releases every hold that organisation holds. The hub cannot do this for them, and that is the point. |
+| hub `?control` | **Forget this session** | Clears the search, the plan and the log. It does not touch anybody's inventory. |
+
+Each switch reaches every open tab of *that origin only*, including the copy the hub has framed, over
+a same-origin `BroadcastChannel`. One organisation cannot flip a switch inside another.
+
+### Tests
 
 ```bash
 pnpm test        # 176 tests, no browser
-pnpm test:e2e    # 8 tests, four origins, a real browser
+pnpm test:e2e    # 15 tests, four origins, a real browser
 pnpm typecheck
 ```
+
+The Node suite proves the hub's logic without a browser: the firewall, the links, the leases, the
+compensation, the consent races. The browser suite proves the things it structurally cannot, which
+is that the page works: four cross-origin frames really load, the consent gate can be completed with
+a keyboard alone, an organisation can genuinely withdraw, two sessions genuinely contend for one
+bed, and axe finds no WCAG 2.1 AA violation on any page in any state including the consent panel
+with an error showing.
 
 ### Browser requirements
 
@@ -273,9 +293,18 @@ Whichever leg ran, the page says so in words, and it never calls the fallback We
    needs a row lock or a Durable Object.
 3. **The link vocabulary is seeded, not learned.** Five link kinds cover this scenario. A real
    deployment would find more, and the feasibility rules are only as good as the vocabulary.
-4. **The provider inventories are hand-written.** Four seeded organisations demonstrate an
-   architecture. §44 of the build plan specifies a fifth origin reading a pinned public HSDS
-   snapshot, read-only and never holdable; it is not built.
+4. **The provider inventories are hand-written, and there is a reason a real one is not among them.**
+   §44 of the build plan specifies a fifth origin reading a pinned public HSDS snapshot, read-only
+   and never holdable. A live Open Referral UK feed was checked while building this
+   (`bristol.openplace.directory`, 874 services, HSDS v3). It carries organisation names, service
+   areas and ESD taxonomies, and for these records it carries no accessibility data, no locations
+   and no schedules. Nothing in it can source a hoist, a dementia-training claim or an admission
+   window.
+
+   Publishing those services would therefore mean inventing capability claims about **real care
+   organisations**, which is the same category of harm as Invariant K's refusal to send them a
+   referral they never agreed to receive. So it is not built, and the reason is that the honest
+   version of it needs a source that records accessibility, not that it was cut for time.
 5. **Compensation can leave a lease stranded** when a provider is unreachable during the unwind. It
    is reported as `unreachable` rather than released, and the TTL frees it within twenty minutes.
 
@@ -298,7 +327,7 @@ apps/provider-*           Three organisations, three origins, three backends.
 tests/unit                Contracts, composition, matching, leases, tool surface.
 tests/integration         The hub against real provider handlers and real lease stores.
 tests/security            The structural no-free-form-surface proof.
-tests/e2e                 The real pages in a real browser.
+tests/e2e                 The real pages in a real browser, plus the axe audit.
 docs/THREAT_MODEL.md      What is controlled, and what is not.
 docs/RUNTIME_TEST_MATRIX.md   What each browser actually did.
 ```

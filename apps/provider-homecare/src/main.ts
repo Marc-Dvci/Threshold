@@ -29,4 +29,5 @@ bootProvider({
   nextStep: 'provider_will_call',
   hubOrigin: HUB_ORIGIN,
   showControl,
+  resetToken: import.meta.env.VITE_RESET_TOKEN ?? 'demo-reset',
 });

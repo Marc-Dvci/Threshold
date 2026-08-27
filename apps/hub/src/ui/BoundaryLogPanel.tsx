@@ -30,7 +30,18 @@ export function BoundaryLogPanel({ events }: { events: readonly BoundaryEvent[] 
         Every line is one of a fixed set this page owns. Field <em>names</em> are recorded; values
         never are.
       </p>
-      <ol className="boundary-log" aria-live="polite" aria-relevant="additions">
+      {/*
+        Focusable, because it scrolls. A scrollable region that cannot be reached by the keyboard is
+        content a keyboard user simply cannot read, and this panel is where the privacy claim is
+        made checkable. Caught by the axe audit in `tests/e2e/accessibility.spec.ts`.
+      */}
+      <ol
+        className="boundary-log"
+        tabIndex={0}
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Data boundary log, newest first"
+      >
         {events.length === 0 && <li className="muted">Nothing has crossed a boundary yet.</li>}
         {events.map((event) => (
           <li key={event.seq} className={`event ${event.direction} ${event.severity}`}>
