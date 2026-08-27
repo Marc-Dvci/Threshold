@@ -32,18 +32,22 @@ under each. That check takes ten seconds and is the first thing to do after any 
 
 ## Render
 
-```bash
-render blueprint launch      # or connect the repo in the dashboard and point at render.yaml
-```
+In the Render dashboard: **New > Blueprint**, pick this repository, and Render reads
+`render.yaml`. `render blueprint launch` does the same thing from the CLI.
 
 `render.yaml` brings up all four services on four `*.onrender.com` hostnames, which are four
 genuinely distinct origins on HTTPS. Service names decide hostnames, so if you rename a service you
 must change every URL in that file and redeploy everything: the hub's registry, the hub's
 `frame-src`, and each provider's `exposedTo` all have to agree.
 
-The blueprint uses the `starter` plan rather than `free` deliberately. Free services sleep after
-inactivity, and a judge who opens the link to find three organisations unreachable has seen a broken
-product, not a sleeping one.
+Everything the build needs is under `envVars`, `APP` included, because Render translates a service's
+environment variables into Docker build arguments. There is no separate build-argument field in a
+Blueprint, so a value that lives anywhere else never reaches the build, and the bundle ships pointing
+at `localhost`.
+
+The blueprint uses a paid instance (`0.5c-512mb`, the plan formerly named `starter`) rather than
+`free` deliberately. Free services sleep after inactivity, and a judge who opens the link to find
+three organisations unreachable has seen a broken product, not a sleeping one.
 
 ## Anywhere that runs a container
 
