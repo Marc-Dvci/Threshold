@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta
+      name="description"
+      content="One page where several independent care organisations answer a person's agent at the same time and compose one plan between them."
+    />
+    <title>Threshold — coordinated care, across organisations</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!--
+      The provider frames.
+
+      Each organisation's real website, loaded on its own origin, with the Permissions Policy
+      feature `tools` granted by this embedder. Off-screen rather than `display: none`: a frame that
+      is not rendered at all can be treated as inert, and these documents have to stay alive for
+      their tools to be discoverable.
+    -->
+    <div id="provider-frames" class="provider-frames" aria-hidden="true"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

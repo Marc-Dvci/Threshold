@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -10,6 +12,19 @@ import react from '@vitejs/plugin-react';
  */
 export default defineConfig({
   plugins: [react()],
+  build: {
+    target: 'es2022',
+    sourcemap: true,
+    rollupOptions: {
+      // Two entry points. `/verify` is deliberately a separate document rather than a route: it has
+      // to render in a browser where the product's own mechanism may not work, and that is a poor
+      // moment to be depending on the product's bundle having booted.
+      input: {
+        index: resolve(__dirname, 'index.html'),
+        verify: resolve(__dirname, 'verify.html'),
+      },
+    },
+  },
   server: {
     port: 5100,
     strictPort: true,
@@ -21,5 +36,4 @@ export default defineConfig({
     strictPort: true,
     headers: { 'Origin-Agent-Cluster': '?1' },
   },
-  build: { target: 'es2022', sourcemap: true },
 });

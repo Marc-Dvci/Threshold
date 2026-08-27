@@ -215,9 +215,19 @@ export const compensationEntrySchema = {
     provider_id: providerIdSchema,
     resource_id: resourceIdSchema,
     hold_id: opaqueIdSchema,
+    /**
+     * What happened to this lease. Four different truths about a scarce resource, kept apart.
+     *
+     * `expired` is not `released`: one says the hub let go, the other says the lease had already
+     * lapsed. `unreachable` is neither, and is the honest answer when a provider could not be
+     * reached during unwind - the provider-authoritative TTL is then the backstop, and claiming a
+     * release we did not perform would be worse than admitting one we could not. `converted` cannot
+     * arise mid-plan, and is here so that a lease which has become a referral can never be quietly
+     * reported as released.
+     */
     status: {
       type: 'string',
-      enum: ['released', 'already_released', 'expired', 'unreachable'],
+      enum: ['released', 'already_released', 'expired', 'converted', 'unreachable'],
     },
   },
 } as const;
