@@ -1,14 +1,16 @@
 # Four origins, one blueprint.
 #
-# `render blueprint launch`, or connect the repository in the Render dashboard and point it at this
-# file. Four services come up on four `*.onrender.com` hostnames, which are four genuinely distinct
-# origins on HTTPS, which is what WebMCP requires and what this entry is about.
+# Connect the repository in the Render dashboard and point it at this file, or `render blueprint
+# launch`. Four services come up on four `*.onrender.com` hostnames, which are four genuinely
+# distinct origins on HTTPS, which is what WebMCP requires and what this entry is about.
 #
-# **The one thing to get right.** Every service is built with all four origin URLs in its
-# environment, because `import.meta.env` is read when the bundle is built. If a hostname changes,
+# **The one thing to get right.** Every service is built with the origin URLs it needs in its
+# environment, because `import.meta.env` is read when the bundle is built. Render translates a
+# service's environment variables into Docker build arguments, which is why everything the build
+# needs — `APP` included — is listed under `envVars` and not anywhere else. If a hostname changes,
 # rebuild; a deployment whose origins are stale fails as a silent discovery timeout rather than as an
-# error anybody can read. `/verify` on the hub says which origins it actually reached, so the check
-# takes ten seconds.
+# error anybody can read. `/verify.html` on the hub says which origins it actually reached, so the
+# check takes ten seconds.
 #
 # Service names decide hostnames, so changing a name here means changing every URL below it.
 
@@ -17,15 +19,16 @@ services:
     name: threshold-hub
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: 0.5c-512mb
     healthCheckPath: /verify.html
-    dockerBuildArgs:
-      APP: hub
-      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
-      VITE_ORIGIN_RESPITE: https://threshold-respite.onrender.com
-      VITE_ORIGIN_HOMECARE: https://threshold-homecare.onrender.com
-      VITE_ORIGIN_TRANSPORT: https://threshold-transport.onrender.com
     envVars:
+      # Which app in the workspace this image serves. Read at build time and at run time.
+      - key: APP
+        value: hub
+      # The hub's own origin, and the three organisations it brokers across. The hub's CSP needs the
+      # same origins the bundle was built against, so these are read in both stages of the build.
+      - key: VITE_HUB_ORIGIN
+        value: https://threshold-hub.onrender.com
       - key: VITE_ORIGIN_RESPITE
         value: https://threshold-respite.onrender.com
       - key: VITE_ORIGIN_HOMECARE
@@ -37,13 +40,11 @@ services:
     name: threshold-respite
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: 0.5c-512mb
     healthCheckPath: /api/units
-    dockerBuildArgs:
-      APP: provider-respite
-      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
-      VITE_RESET_TOKEN: demo-reset
     envVars:
+      - key: APP
+        value: provider-respite
       # The one origin allowed to frame this organisation's page. The other half of the same gate is
       # `exposedTo` on the tools themselves.
       - key: VITE_HUB_ORIGIN
@@ -53,6 +54,8 @@ services:
       # page cannot know is a reset button that never works. It is a speed bump so the route is not
       # something a crawler trips over, which is all §29 asks of it. Without any token the route
       # refuses outright.
+      - key: VITE_RESET_TOKEN
+        value: demo-reset
       - key: THRESHOLD_RESET_TOKEN
         value: demo-reset
 
@@ -60,15 +63,15 @@ services:
     name: threshold-homecare
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: 0.5c-512mb
     healthCheckPath: /api/units
-    dockerBuildArgs:
-      APP: provider-homecare
-      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
-      VITE_RESET_TOKEN: demo-reset
     envVars:
+      - key: APP
+        value: provider-homecare
       - key: VITE_HUB_ORIGIN
         value: https://threshold-hub.onrender.com
+      - key: VITE_RESET_TOKEN
+        value: demo-reset
       - key: THRESHOLD_RESET_TOKEN
         value: demo-reset
 
@@ -76,14 +79,14 @@ services:
     name: threshold-transport
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: 0.5c-512mb
     healthCheckPath: /api/units
-    dockerBuildArgs:
-      APP: provider-transport
-      VITE_HUB_ORIGIN: https://threshold-hub.onrender.com
-      VITE_RESET_TOKEN: demo-reset
     envVars:
+      - key: APP
+        value: provider-transport
       - key: VITE_HUB_ORIGIN
         value: https://threshold-hub.onrender.com
+      - key: VITE_RESET_TOKEN
+        value: demo-reset
       - key: THRESHOLD_RESET_TOKEN
         value: demo-reset
