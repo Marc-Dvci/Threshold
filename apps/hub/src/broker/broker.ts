@@ -48,6 +48,11 @@ import {
 } from './firewall';
 import { PROVIDERS, type ProviderEntry } from './registry';
 
+/** Whether an origin has finished arriving: connected, and publishing everything it should. */
+function isWhole(c: ProviderConnection): boolean {
+  return c.state === 'connected' && c.missingTools.length === 0;
+}
+
 /** How an origin is currently answering. Rendered on the provider panels and in `find_support`. */
 export type ProviderConnection = {
   entry: ProviderEntry;
@@ -110,13 +115,18 @@ export class ProviderBroker {
    * and a diff-based update is the kind of code that leaves a stale handle behind and then executes
    * against an origin that is no longer listening.
    */
-  async refresh(options: { timeoutMs?: number } = {}): Promise<readonly ProviderConnection[]> {
+  async refresh(
+    options: { timeoutMs?: number; emitTransitions?: boolean } = {},
+  ): Promise<readonly ProviderConnection[]> {
     const origins = this.providers.map((p) => p.origin);
     const discoveries = await this.transport.discover(origins, {
       timeoutMs: options.timeoutMs ?? BROKER_TIMEOUTS.discoveryMs,
     });
 
-    const previous = new Map(this.connections.map((c) => [c.entry.id, c.state]));
+    const previous =
+      options.emitTransitions === false
+        ? new Map<ProviderId, ProviderConnection['state']>()
+        : new Map(this.connections.map((c) => [c.entry.id, c.state]));
     this.index = indexByOriginAndName(discoveries);
     this.connections = this.providers.map((entry) =>
       toConnection(entry, discoveries.find((d) => d.origin === entry.origin)),
@@ -134,6 +144,51 @@ export class ProviderBroker {
 
     this.events.onConnectionsChanged?.(this.connections);
     return this.connections;
+  }
+
+  /**
+   * Discover repeatedly until every organisation is *whole*, or the budget runs out.
+   *
+   * A single discovery answers the question "what is published right now", and at boot that is the
+   * wrong question, because two things make "right now" a moving target and neither is an error:
+   *
+   *  - **Registration is not atomic.** A provider publishes its tools with separate async calls, so
+   *    there is a window in which an origin is genuinely connected and genuinely publishing only
+   *    some of its tools. Discovery landing in that window produces an organisation that looks like
+   *    it does not do leases — silently, and on a different provider each reload.
+   *  - **A sleeping service takes time to answer.** On the deployment each organisation is its own
+   *    service and wakes on the first request, so the first visit finds origins that are not up yet.
+   *
+   * `expectedTools` in the registry is what makes the difference legible: the hub knows what a whole
+   * organisation looks like, so it can tell a provider that is still arriving from one that is
+   * genuinely offering less. Transitions are suppressed while settling — an origin that has not
+   * finished starting has not "withdrawn", and logging it as a withdrawal would put a false line in
+   * the boundary log on every cold boot.
+   *
+   * It returns whatever it has when the budget expires. Waiting forever for an organisation that is
+   * actually down would let one provider decide whether the page ever loads, which is the failure
+   * §21.3 exists to prevent; the honest end of a wait is a report, not a hang.
+   */
+  async settle(
+    options: { budgetMs?: number; onWaiting?: (elapsedMs: number) => void } = {},
+  ): Promise<readonly ProviderConnection[]> {
+    const budgetMs = options.budgetMs ?? 45_000;
+    const startedAt = Date.now();
+    let attempt = 0;
+
+    for (;;) {
+      const connections = await this.refresh({ emitTransitions: false });
+      if (connections.every(isWhole)) return connections;
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed >= budgetMs) return connections;
+
+      attempt += 1;
+      options.onWaiting?.(elapsed);
+      // Backed off to a ceiling. A cold service does not boot faster for being asked again, and a
+      // long wait should stay cheap.
+      await new Promise((r) => setTimeout(r, Math.min(250 * 2 ** (attempt - 1), 2000)));
+    }
   }
 
   private handle(entry: ProviderEntry, tool: string): DiscoveredTool | undefined {

@@ -81,7 +81,10 @@ async function run(): Promise<void> {
     resolveWindow: frames.resolveWindow,
   });
   const broker = new ProviderBroker(transport);
-  const connections = await broker.refresh();
+  // Settled rather than read once: this page's whole job is to state something true, and a single
+  // discovery at boot can catch an origin mid-registration and report an organisation as publishing
+  // one tool when it publishes four.
+  const connections = await broker.settle();
   const report = runtimeReport();
 
   const verdict =

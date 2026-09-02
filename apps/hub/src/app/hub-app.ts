@@ -49,6 +49,14 @@ export type HubAppView = {
   transport: 'webmcp' | 'postmessage' | 'none';
   ready: boolean;
   runtime: RuntimeReport;
+  /**
+   * What the page is waiting for while `ready` is false.
+   *
+   * Only set once a boot has taken long enough to need explaining. A cold deployment can take the
+   * better part of a minute to wake three sleeping services, and a spinner that says nothing for
+   * that long reads as a broken page rather than a slow one.
+   */
+  bootNote?: string;
 };
 
 type ViewListener = (view: HubAppView) => void;
@@ -65,6 +73,7 @@ export class HubApp {
   private coreRef: HubCore | null = null;
   private lifecycle: ToolLifecycle | null = null;
   private ready = false;
+  private bootNote: string | undefined;
   private readonly listeners = new Set<ViewListener>();
   private connections: readonly ProviderConnection[] = [];
 
@@ -91,6 +100,7 @@ export class HubApp {
       registeredTools: this.lifecycle?.registered() ?? [],
       transport: this.transport?.kind ?? 'none',
       ready: this.ready,
+      ...(this.bootNote !== undefined ? { bootNote: this.bootNote } : {}),
       runtime: runtimeReport(),
     };
   }
@@ -109,6 +119,7 @@ export class HubApp {
     this.transport = await selectTransport({
       probeOrigin: PROVIDER_ORIGINS[0]!,
       resolveWindow: this.frames.resolveWindow,
+      onWaiting: (elapsed) => this.noteBoot(elapsed),
     });
 
     this.brokerRef = new ProviderBroker(this.transport, {
@@ -161,7 +172,17 @@ export class HubApp {
         : 'cross-origin tool discovery was unavailable',
     );
 
-    await this.brokerRef.refresh();
+    // Settled, not merely refreshed. At boot an origin can be mid-registration or still waking, and
+    // both look exactly like an organisation that offers less than it does. See `settle`.
+    // A shorter budget than the transport probe's, and deliberately so: the probe has already
+    // waited for the first origin to wake, and all three frames were requested together, so by the
+    // time a transport is chosen the rest are up or are not coming. This budget covers the
+    // registration window, not a cold start.
+    await this.brokerRef.settle({
+      budgetMs: 20_000,
+      onWaiting: (elapsed) => this.noteBoot(elapsed),
+    });
+    this.bootNote = undefined;
 
     if (isWebMCPSupported()) {
       this.lifecycle = new ToolLifecycle(
@@ -188,6 +209,19 @@ export class HubApp {
     this.ready = true;
     this.machine.subscribe(() => this.emit());
     this.consent.subscribe(() => this.emit());
+    this.emit();
+  }
+
+  /**
+   * Explain a slow boot, once it is slow enough to be worth explaining.
+   *
+   * Silent below a few seconds, because a normal boot should not narrate itself.
+   */
+  private noteBoot(elapsedMs: number): void {
+    if (elapsedMs < 4000) return;
+    this.bootNote =
+      'Waking three organisations. Each is a separate service that sleeps when idle, so the first ' +
+      'visit takes a little longer.';
     this.emit();
   }
 

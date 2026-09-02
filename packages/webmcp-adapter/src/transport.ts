@@ -230,30 +230,72 @@ export class PostMessageTransport implements ProviderTransport {
  * The probe is a real `getTools` against a real provider origin, because "the methods exist" and
  * "the methods work across an origin boundary in this browser" are different facts and only the
  * second one matters. `probeOrigin` should be a provider that is definitely loaded.
+ *
+ * **Why the probe retries.** A single probe conflates two different facts that happen to look
+ * identical for the first few seconds: *this browser cannot federate*, and *that organisation has
+ * not finished starting yet*. On the deployment the providers are separate services that sleep when
+ * idle and take roughly half a minute to wake, so the first visitor of the day probes an origin
+ * whose document is still loading, gets no tools, and is told in the largest text on the page that
+ * their browser does not support cross-origin WebMCP. That is not a slow path, it is a false
+ * statement about the one thing this entry is about, shown to the person most likely to be
+ * arriving cold.
+ *
+ * So the probe is retried while the federation API is *present* — the case where a wait can still
+ * change the answer — and never when it is absent, which is the case that is already settled and
+ * must stay instant. A browser that genuinely cannot federate reaches the fallback on the first
+ * turn; a provider that is merely asleep is waited for. `onWaiting` lets the page say which of the
+ * two is happening instead of appearing to hang.
  */
 export async function selectTransport(options: {
   probeOrigin: string;
   resolveWindow: WindowResolver;
   timeoutMs?: number;
+  /** Total budget for waking a sleeping origin. Only ever spent when the API is present. */
+  settleMs?: number;
+  /** Called before each retry, so the UI can explain the wait rather than freeze through it. */
+  onWaiting?: (elapsedMs: number) => void;
 }): Promise<ProviderTransport> {
   const supported = isWebMCPSupported();
 
   if (supported && hasFederationApi()) {
-    const [probe] = await discoverOrigins([options.probeOrigin], {
-      timeoutMs: options.timeoutMs ?? 4000,
-    });
-    if (probe && probe.state === 'ok' && probe.tools.length > 0) {
-      setRuntime('transport', 'webmcp');
-      noteRuntime(`transport: WebMCP federation (probe found ${probe.tools.length} tools)`);
-      return new WebMcpTransport();
+    const settleMs = options.settleMs ?? 45_000;
+    const startedAt = Date.now();
+    let why = 'probe did not run';
+    let attempt = 0;
+
+    for (;;) {
+      const [probe] = await discoverOrigins([options.probeOrigin], {
+        timeoutMs: options.timeoutMs ?? 4000,
+      });
+      if (probe && probe.state === 'ok' && probe.tools.length > 0) {
+        setRuntime('transport', 'webmcp');
+        noteRuntime(
+          `transport: WebMCP federation (probe found ${probe.tools.length} tools` +
+            (attempt > 0 ? ` after ${attempt + 1} attempts, ${Date.now() - startedAt}ms` : '') +
+            ')',
+        );
+        return new WebMcpTransport();
+      }
+      why =
+        probe === undefined
+          ? 'probe did not run'
+          : probe.state === 'ok'
+            ? 'origin answered with no tools'
+            : (probe.reason ?? probe.state);
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed >= settleMs) break;
+      attempt += 1;
+      options.onWaiting?.(elapsed);
+      // Backs off to a ceiling rather than hammering: a service that is cold-starting is not made
+      // to boot faster by being asked again, and the ceiling keeps the poll cheap over a long wait.
+      await new Promise((r) => setTimeout(r, Math.min(250 * 2 ** (attempt - 1), 2000)));
     }
-    const why =
-      probe === undefined
-        ? 'probe did not run'
-        : probe.state === 'ok'
-          ? 'origin answered with no tools'
-          : (probe.reason ?? probe.state);
-    noteRuntime(`transport: WebMCP present but cross-origin discovery failed (${why}); falling back`);
+
+    noteRuntime(
+      `transport: WebMCP present but cross-origin discovery failed (${why}) after ` +
+        `${Date.now() - startedAt}ms; falling back`,
+    );
   } else {
     noteRuntime(
       supported

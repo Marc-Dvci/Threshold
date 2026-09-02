@@ -67,7 +67,11 @@ export function App({ hub }: { hub: HubApp }) {
           </div>
         </div>
         <div className="runtime" role="status">
-          <TransportBadge kind={view.transport} ready={view.ready} />
+          <TransportBadge
+            kind={view.transport}
+            ready={view.ready}
+            {...(view.bootNote !== undefined ? { bootNote: view.bootNote } : {})}
+          />
           <p className="state">
             <strong>{view.state.tag}</strong> · {STATE_CAPTIONS[view.state.tag] ?? ''}
           </p>
@@ -78,8 +82,8 @@ export function App({ hub }: { hub: HubApp }) {
         <section aria-labelledby="providers-h" className="panel">
           <h2 id="providers-h">Organisations</h2>
           <p className="note">
-            Four separate websites, on four origins, each with its own inventory and its own booking
-            system. None of them can see the others.
+            Three separate websites, on three origins, each with its own inventory and its own
+            booking system. None of them can see the others.
           </p>
           <ul className="providers">
             {view.connections.map((c) => (
@@ -321,8 +325,22 @@ export function App({ hub }: { hub: HubApp }) {
  * which is the accurate thing to say about it, and saying so is worth more than the claim it would
  * replace.
  */
-function TransportBadge({ kind, ready }: { kind: 'webmcp' | 'postmessage' | 'none'; ready: boolean }) {
-  if (!ready) return <p className="transport pending">connecting to organisations…</p>;
+function TransportBadge({
+  kind,
+  ready,
+  bootNote,
+}: {
+  kind: 'webmcp' | 'postmessage' | 'none';
+  ready: boolean;
+  bootNote?: string;
+}) {
+  if (!ready)
+    return (
+      <p className="transport pending">
+        connecting to organisations…
+        {bootNote ? <span className="boot-note"> {bootNote}</span> : null}
+      </p>
+    );
   if (kind === 'webmcp') {
     return (
       <p className="transport webmcp">

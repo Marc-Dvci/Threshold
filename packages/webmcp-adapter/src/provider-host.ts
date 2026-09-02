@@ -110,24 +110,35 @@ export class ProviderHost {
     if (isWebMCPSupported()) {
       const controller = new AbortController();
       this.controller = controller;
-      for (const def of this.definitions) {
-        await registerWebMCPTool(
-          {
-            name: def.name,
-            ...(def.title !== undefined ? { title: def.title } : {}),
-            description: def.description,
-            inputSchema: def.inputSchema,
-            ...(def.annotations !== undefined ? { annotations: def.annotations } : {}),
-            execute: async (input, ctx) => encodeProviderResult(await def.execute(input, ctx)),
-          },
-          {
-            // Two gates make federation safe, and this is the provider's half of it: exactly one
-            // origin, named. The embedder's `allow="tools"` is the other half.
-            exposedTo: [this.options.hubOrigin],
-            signal: controller.signal,
-          },
-        );
-      }
+      // Registered concurrently, not in sequence, and the reason is a race that was observed on the
+      // deployment rather than reasoned about here. `registerTool` is async, so a sequential loop
+      // publishes this organisation's tools one at a time with an await between each, and a hub that
+      // discovers during that window sees a real, connected origin publishing only the first tool.
+      // It is silent — nothing errors, the origin simply looks like an organisation that does not do
+      // lease or referral — and it lands on whichever provider happens to lose the race. Concurrent
+      // registration collapses the window to a single turn. The hub does not rely on that alone
+      // (`ProviderBroker.settle` re-reads until each origin is whole), because a window this code
+      // cannot close on its own side is still a window; this is the half the provider owns.
+      await Promise.all(
+        this.definitions.map((def) =>
+          registerWebMCPTool(
+            {
+              name: def.name,
+              ...(def.title !== undefined ? { title: def.title } : {}),
+              description: def.description,
+              inputSchema: def.inputSchema,
+              ...(def.annotations !== undefined ? { annotations: def.annotations } : {}),
+              execute: async (input, ctx) => encodeProviderResult(await def.execute(input, ctx)),
+            },
+            {
+              // Two gates make federation safe, and this is the provider's half of it: exactly one
+              // origin, named. The embedder's `allow="tools"` is the other half.
+              exposedTo: [this.options.hubOrigin],
+              signal: controller.signal,
+            },
+          ),
+        ),
+      );
     }
 
     this.online = true;
