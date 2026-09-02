@@ -160,6 +160,73 @@ test('an agent discovers and calls the hub tools through executeTool', async ({ 
   expect(consoleErrors.some((e) => e.includes('reconciliation failed'))).toBe(false);
 });
 
+/**
+ * The mutating tool, called the way an agent calls it.
+ *
+ * `place_plan_holds` is the tool that leaves the state it was registered in: it takes the leases and
+ * the machine lands in HELD, where the tool no longer exists. Unregistering it is an `abort()` on
+ * the registration the browser is still delivering its result against, so reconciling one microtask
+ * too early cancelled the call — the leases were taken, the page moved to HELD, and the agent was
+ * told "the operation failed for an unknown transient reason". Work done, answer lost, and nothing
+ * in the console or the UI to suggest it.
+ *
+ * A read-only tool cannot catch this. Only one that ends outside its own registration can.
+ */
+test('an agent gets its answer back from a tool that unregisters itself', async ({ page }) => {
+  await page.goto('/');
+  await ready(page);
+
+  const out = await page.evaluate(async (need) => {
+    // Waits for the tool to appear, the way an agent does: the surface is re-read after a
+    // `toolchange`, not assumed to have already moved by the time the previous call returned.
+    const call = async (name: string, input: unknown) => {
+      let t;
+      for (let i = 0; i < 60 && !t; i += 1) {
+        const tools = await (document as any).modelContext.getTools();
+        t = tools.find((x: { name: string }) => x.name === name);
+        if (!t) await new Promise((r) => setTimeout(r, 50));
+      }
+      if (!t) return { error: `${name} not registered` };
+      try {
+        const raw = await (document as any).modelContext.executeTool(t, JSON.stringify(input));
+        if (raw === null) return { error: 'null return' };
+        return JSON.parse(JSON.parse(raw).content[0].text);
+      } catch (e) {
+        return { error: String((e as Error)?.message ?? e) };
+      }
+    };
+
+    const search = await call('find_support', need);
+    const plan = await call('check_plan', {
+      search_id: search.data.search_id,
+      parts: [
+        { role: 'placement', provider_id: 'respite-a', resource_id: 'R17' },
+        { role: 'transport', provider_id: 'transport-a', resource_id: 'T9' },
+        { role: 'cover', provider_id: 'homecare-a', resource_id: 'H3' },
+      ],
+    });
+    const held = await call('place_plan_holds', { plan_id: plan.data.plan_id });
+    return { feasible: plan.data?.feasible, held };
+  }, GOLDEN_NEED);
+
+  expect(out.feasible).toBe(true);
+  // The answer itself, not just the side effect. This is the assertion the bug defeated.
+  expect(out.held.error, `place_plan_holds returned an error: ${out.held.error}`).toBeUndefined();
+  expect(out.held.ok).toBe(true);
+
+  // And the surface still caught up afterwards: HELD is where make_referral lives.
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          const tools = await (document as any).modelContext.getTools();
+          return tools.map((t: { name: string }) => t.name);
+        }),
+      { timeout: 8_000 },
+    )
+    .toContain('make_referral');
+});
+
 test('the failing link is named on screen, with the organisation to go back to', async ({ page }) => {
   await page.goto('/');
   await ready(page);

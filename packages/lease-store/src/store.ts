@@ -77,9 +77,28 @@ export type LeaseStoreOptions = {
 };
 
 let fallbackCounter = 0;
+
+/**
+ * A per-process salt, and it is the whole point of this function.
+ *
+ * Every organisation runs its own store in its own process, and a bare counter starts at one in all
+ * of them — so three independent organisations each hand out `hold_000001` for three completely
+ * different resources. Those ids meet in the hub, which holds one lease per id, and the collision is
+ * silent: leases overwrite each other, a plan that took three holds reports one, the two it lost can
+ * no longer be released, and a referral aimed at the respite bed is delivered to whichever
+ * organisation wrote that key last. Nothing errors anywhere along that path.
+ *
+ * An id minted by one party and pooled with another party's must therefore carry something the other
+ * party cannot also produce. Six random characters is that, and the counter is kept beside it so the
+ * ids stay readable in a log. Stays inside the opaque-id contract: `^[a-z]{1,10}_[A-Za-z0-9]{6,24}$`.
+ */
+const processSalt = Array.from({ length: 6 }, () =>
+  'abcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 36)),
+).join('');
+
 const defaultMint = (prefix: 'hold' | 'ref'): string => {
   fallbackCounter += 1;
-  return `${prefix}_${fallbackCounter.toString(36).padStart(6, '0')}`;
+  return `${prefix}_${processSalt}${fallbackCounter.toString(36).padStart(4, '0')}`;
 };
 
 export class LeaseStore {

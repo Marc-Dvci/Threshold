@@ -151,16 +151,43 @@ export class SessionStore {
     return this.plans.get(id);
   }
 
-  putLease(lease: ActiveLease): void {
-    this.leases.set(lease.hold_id, lease);
+  /**
+   * Keyed by `(provider_id, hold_id)`, never by `hold_id` alone.
+   *
+   * The same reasoning the broker applies to tool names applies here, and for a worse consequence.
+   * A hold id is minted by an organisation, and organisations do not coordinate: two of them can
+   * hand out the same string for two unrelated resources without either being wrong. Keyed by that
+   * string alone, the second lease evicts the first — the plan silently holds fewer beds than it
+   * took, the evicted ones cannot be released because nothing remembers them, and a referral aimed
+   * at one organisation is delivered to another. Composite key, so a collision costs nothing.
+   */
+  private static key(providerId: string, holdId: string): string {
+    // `::` cannot occur in either half: a provider id is lower-case letters and hyphens, a hold id
+    // matches the opaque-id pattern. So the pair round-trips to exactly one key.
+    return `${providerId}::${holdId}`;
   }
 
+  putLease(lease: ActiveLease): void {
+    this.leases.set(SessionStore.key(lease.provider_id, lease.hold_id), lease);
+  }
+
+  /**
+   * Look a lease up by the id an agent quoted.
+   *
+   * An agent has one string to offer, so if two organisations really have issued the same id this
+   * cannot be resolved — and it must not be guessed. Returning nothing makes the caller report the
+   * hold as not found, which refuses the referral; picking one would send a person's name and phone
+   * number to an organisation nobody asked for.
+   */
   lease(holdId: string): ActiveLease | undefined {
-    return this.leases.get(holdId);
+    const matches = [...this.leases.values()].filter((l) => l.hold_id === holdId);
+    return matches.length === 1 ? matches[0] : undefined;
   }
 
   dropLease(holdId: string): void {
-    this.leases.delete(holdId);
+    for (const [key, lease] of [...this.leases]) {
+      if (lease.hold_id === holdId) this.leases.delete(key);
+    }
   }
 
   /** Leases for one plan, in acquisition order. Compensation walks this in reverse. */

@@ -191,9 +191,17 @@ export class HubApp {
           // reconcile it skipped happens here, the moment it is no longer inside one. An agent's
           // call is the only caller that goes through this wrapper, which is why a stale surface
           // was invisible until one did.
+          //
+          // **Deferred to a macrotask, and that is not a detail.** Unregistering a tool is an
+          // `abort()` on the registration the browser is still holding the in-flight call against,
+          // so doing it in the microtask that settles the handler cancels the call whose result is
+          // being delivered: the work commits, the state machine moves, and the agent is handed
+          // "the operation failed for an unknown transient reason" in place of its answer.
+          // `place_plan_holds` leaves the machine in HELD, where it is no longer registered, so it
+          // met this on every call an agent ever made. Yielding a task first lets the result out.
           guard: (fn) =>
             this.lifecycle!.guard(fn).finally(() => {
-              void this.reconcileTools();
+              setTimeout(() => void this.reconcileTools(), 0);
             }),
         }),
       );
