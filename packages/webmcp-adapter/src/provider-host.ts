@@ -41,7 +41,11 @@ export type ProviderToolDefinition = {
    * have to know that the federation leg is `Promise<DOMString>`, and a provider that stringifies
    * its own results is a provider that will one day stringify them differently.
    */
-  execute: (input: unknown, context: { signal: AbortSignal }) => Promise<unknown> | unknown;
+  /**
+   * The context is optional for the same reason it is on `ModelContextTool`: a cross-origin caller
+   * supplies none. The `postMessage` path below does pass one, so both callers stay honest.
+   */
+  execute: (input: unknown, context?: { signal?: AbortSignal }) => Promise<unknown> | unknown;
 };
 
 export type ProviderHostOptions = {

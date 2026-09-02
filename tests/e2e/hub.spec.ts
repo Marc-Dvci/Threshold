@@ -99,6 +99,46 @@ test('the page loads, and the four organisations are reachable from it', async (
   }
 });
 
+/**
+ * The agent's own path, end to end.
+ *
+ * Every other test in this file reaches the handlers through `window.threshold.core`, which is fast
+ * and deterministic and skips the one step that only exists for agents: the registered `execute`
+ * wrapper that `document.modelContext.executeTool` invokes. A wrapper that threw on its first line
+ * for every tool passed all fifteen of those tests, because none of them ever called it. The bug it
+ * hid was that `executeTool` supplies no context argument, so reading `context.signal` threw before
+ * any handler ran, and the only thing the caller learned was "the script function threw an error".
+ *
+ * So this test calls the tools the way an agent calls them and no other way.
+ */
+test('an agent discovers and calls the hub tools through executeTool', async ({ page }) => {
+  await page.goto('/');
+  await ready(page);
+
+  const seen = await page.evaluate(async () => {
+    const tools = await (document as any).modelContext.getTools();
+    return tools.map((t: { name: string }) => t.name);
+  });
+  expect(seen).toContain('find_support');
+
+  const raw = await page.evaluate(async (input) => {
+    const tools = await (document as any).modelContext.getTools();
+    const find = tools.find((t: { name: string }) => t.name === 'find_support');
+    // Arguments go in as a JSON string: Chrome rejects the IDL's object form.
+    return (document as any).modelContext.executeTool(find, JSON.stringify(input));
+  }, GOLDEN_NEED);
+
+  // A null return means the call triggered a navigation, and reading that as an empty success is
+  // exactly the silent data loss the adapter refuses to perform.
+  expect(raw).not.toBeNull();
+
+  const text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+  expect(text).toContain('search_id');
+
+  // The call reached the product, not just the wrapper: the page shows what the agent asked for.
+  await expect(page.locator('.matches tbody tr').first()).toBeVisible();
+});
+
 test('the failing link is named on screen, with the organisation to go back to', async ({ page }) => {
   await page.goto('/');
   await ready(page);

@@ -148,9 +148,13 @@ export function buildHubToolDefinitions(
       description: DESCRIPTIONS[name].description,
       inputSchema: SCHEMAS[name],
       annotations: ANNOTATIONS[name],
+      // `context` is optional on purpose. An agent calling through `executeTool` supplies no second
+      // argument, so reading `context.signal` unconditionally throws before the handler is ever
+      // reached — which is every tool, for every agent, and invisible from inside the page.
       execute: (input, context) =>
         options.guard(async () => {
-          const result = await core.handler(name)(input, { signal: context.signal });
+          const signal = context?.signal;
+          const result = await core.handler(name)(input, signal ? { signal } : {});
           return encodeToolResult(result);
         }),
     },

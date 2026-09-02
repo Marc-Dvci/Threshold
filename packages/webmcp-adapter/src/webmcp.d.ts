@@ -60,9 +60,18 @@ declare global {
     description: string;
     inputSchema: object;
     annotations?: ModelContextToolAnnotations;
+    /**
+     * **The context argument is optional in practice, whatever the IDL says.**
+     *
+     * Measured in Chrome 152: a tool invoked through `document.modelContext.executeTool` — which is
+     * how the embedding page, and an agent, actually call it — receives the input alone and no
+     * second argument. A handler that reads `context.signal` without checking throws
+     * `Cannot read properties of undefined`, and the caller is told only that "the script function
+     * threw an error". Typing it as always-present is what let that reach a deployment.
+     */
     execute: (
       input: unknown,
-      context: { signal: AbortSignal },
+      context?: { signal?: AbortSignal },
     ) => Promise<ModelContextToolResult> | ModelContextToolResult;
   }
 
