@@ -187,7 +187,14 @@ export class HubApp {
     if (isWebMCPSupported()) {
       this.lifecycle = new ToolLifecycle(
         buildHubToolDefinitions(this.coreRef, {
-          guard: (fn) => this.lifecycle!.guard(fn),
+          // A handler that transitions the machine cannot reconcile from inside itself, so the
+          // reconcile it skipped happens here, the moment it is no longer inside one. An agent's
+          // call is the only caller that goes through this wrapper, which is why a stale surface
+          // was invisible until one did.
+          guard: (fn) =>
+            this.lifecycle!.guard(fn).finally(() => {
+              void this.reconcileTools();
+            }),
         }),
       );
 
@@ -228,6 +235,10 @@ export class HubApp {
   private async reconcileTools(): Promise<void> {
     const lifecycle = this.lifecycle;
     if (!lifecycle) return;
+    // Driven by state transitions, and a transition can happen inside a tool handler. Registration
+    // is refused there on purpose (§13.3), so this returns and the guard reconciles on the way out
+    // rather than letting the refusal surface as a caught error and a surface that never updates.
+    if (lifecycle.isExecuting()) return;
     const desired = this.machine.desiredTools();
     try {
       await lifecycle.reconcile(desired as HubToolName[]);

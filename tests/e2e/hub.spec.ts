@@ -112,6 +112,11 @@ test('the page loads, and the four organisations are reachable from it', async (
  * So this test calls the tools the way an agent calls them and no other way.
  */
 test('an agent discovers and calls the hub tools through executeTool', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') consoleErrors.push(m.text());
+  });
+
   await page.goto('/');
   await ready(page);
 
@@ -137,6 +142,22 @@ test('an agent discovers and calls the hub tools through executeTool', async ({ 
 
   // The call reached the product, not just the wrapper: the page shows what the agent asked for.
   await expect(page.locator('.matches tbody tr').first()).toBeVisible();
+
+  // And the agent's own view of the tool surface moved with the state machine. A handler cannot
+  // reconcile from inside itself, so if nothing reconciles once it exits, `check_plan` never appears
+  // for the one caller that needs it and the ordering claim quietly stops being true.
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          const tools = await (document as any).modelContext.getTools();
+          return tools.map((t: { name: string }) => t.name);
+        }),
+      { timeout: 8_000 },
+    )
+    .toContain('check_plan');
+
+  expect(consoleErrors.some((e) => e.includes('reconciliation failed'))).toBe(false);
 });
 
 test('the failing link is named on screen, with the organisation to go back to', async ({ page }) => {

@@ -81,6 +81,18 @@ export class ToolLifecycle {
     });
   }
 
+  /**
+   * Whether a tool handler is currently running.
+   *
+   * The caller needs this because refusing a reconcile inside a handler is only half of the rule:
+   * something has to perform the reconcile the refusal skipped, once the handler is out of the way.
+   * Without that second half the tool surface silently stops tracking the state machine the moment
+   * an agent is the one driving it — the surface goes stale exactly when it matters.
+   */
+  isExecuting(): boolean {
+    return this.inHandler > 0;
+  }
+
   private assertNotInHandler(): void {
     if (this.inHandler > 0) {
       throw new Error(
