@@ -263,6 +263,13 @@ a keyboard alone, an organisation can genuinely withdraw, two sessions genuinely
 bed, and axe finds no WCAG 2.1 AA violation on any page in any state including the consent panel
 with an error showing.
 
+One of those tests earns its place by construction. Every other browser test reaches the handlers
+through `window.threshold.core`, which skips the one step that exists only for agents: the
+registered `execute` wrapper that `document.modelContext.executeTool` invokes. So one test calls the
+tools the way an agent calls them and no other way — through `getTools` and `executeTool`, with the
+arguments as a JSON string. A wrapper can be broken for every agent while the page itself works
+perfectly, and that is not a failure any amount of clicking will find.
+
 ### Deploying it
 
 Four origins on HTTPS, because WebMCP is secure-context only and cross-origin tools need an
