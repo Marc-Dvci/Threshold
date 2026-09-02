@@ -251,8 +251,8 @@ a same-origin `BroadcastChannel`. One organisation cannot flip a switch inside a
 ### Tests
 
 ```bash
-pnpm test        # 180 tests, no browser
-pnpm test:e2e    # 16 tests, four origins, a real browser
+pnpm test        # 185 tests, no browser
+pnpm test:e2e    # 17 tests, four origins, a real browser
 pnpm typecheck
 ```
 
